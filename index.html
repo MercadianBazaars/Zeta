@@ -4,31 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zeta - Magic Card Guessing Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Goudy+Bookletter+1911&display=swap" rel="stylesheet">
     <style>
-        /* GROUP 1: General Page Styles */
+        /* GROUP 1: Global Styles */
         body {
-            font-family: Arial, sans-serif;
+            font-size: calc(10px + 2vmin);
+            background-color: #fee;
+            color: #333;
+            transition: background-color 0.3s ease-out, color 0.3s ease-out;
+            padding-top: 30px;
             text-align: center;
-            padding: 20px;
-            background-color: #121212;
-            color: white;
+        }
+        * { box-sizing: border-box; }
+
+        /* GROUP 2: Heading Styles */
+        h1 { font-family: "Goudy Bookletter 1911", serif; }
+        .tagline {
+            text-transform: uppercase;
+            opacity: 0.7;
+            font-weight: bold;
+            letter-spacing: 0.06em;
+            font-size: 12px;
+            margin-top: -12px;
         }
 
-        /* GROUP 2: Set Symbol Bar */
-        #setSymbolContainer {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            max-width: 100%;
-            padding: 10px 0;
+        /* GROUP 3: Table Styles */
+        .guess-table-wrapper {
+            max-width: calc(100% - 24px);
+            overflow: auto;
+            margin: 0 auto;
         }
-        .set-symbol {
-            width: 20px;
-            height: 20px;
-            margin: 5px;
-        }
-
-        /* GROUP 3: Game Table Styles */
         .guess-table {
             width: 90%;
             margin: auto;
@@ -40,49 +45,48 @@
             padding: 10px;
             text-align: center;
         }
-        .correct { background-color: green; }
-        .almost-correct { background-color: orange; }
-        .wrong { background-color: red; }
+        
+        /* GROUP 4: Guess Feedback Colors */
+        :root {
+            --correct-color: rgba(63, 184, 113, 0.7);
+            --almost-correct-color: rgba(255, 180, 40, 0.7);
+            --wrong-color: rgba(255, 0, 0, 0.5);
+        }
+        .correct { background-color: var(--correct-color); }
+        .almost-correct { background-color: var(--almost-correct-color); }
+        .wrong { background-color: var(--wrong-color); }
 
-        /* GROUP 4: Input Styles */
-        #guessInput {
-            padding: 10px;
-            margin: 10px;
-            width: 300px;
-        }
-        #feedback {
-            font-weight: bold;
-            margin-top: 10px;
-        }
+        /* GROUP 5: Dark Mode Support */
+        body.dark-mode { color: white; background-color: #282c34; }
     </style>
 </head>
 <body>
-    <!-- GROUP 1: Set Symbol Bar (Displays at the top) -->
-    <div id="setSymbolContainer"></div>
-    <!-- This Ends Group 1 -->
-
-    <!-- GROUP 2: Game UI -->
+    <!-- GROUP 1: Game Title -->
     <h1>Zeta - Magic Card Guessing Game</h1>
-    <p>Guess the Magic: The Gathering card details!</p>
+    <p class="tagline">Guess the Magic: The Gathering card details!</p>
+
+    <!-- GROUP 2: User Input -->
     <input type="text" id="guessInput" placeholder="Enter card name">
     <button onclick="checkGuess()">Submit Guess</button>
 
-    <table class="guess-table">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Card Name</th>
-                <th>Mana Value</th>
-                <th>Colours</th>
-                <th>Rarity</th>
-                <th>Type</th>
-                <th>Subtype</th>
-                <th>Set</th>
-            </tr>
-        </thead>
-        <tbody id="guessResults"></tbody>
-    </table>
-    <!-- This Ends Group 2 -->
+    <!-- GROUP 3: Guess Table -->
+    <div class="guess-table-wrapper">
+        <table class="guess-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Card Name</th>
+                    <th>Mana Value</th>
+                    <th>Colours</th>
+                    <th>Rarity</th>
+                    <th>Type</th>
+                    <th>Subtype</th>
+                    <th>Set</th>
+                </tr>
+            </thead>
+            <tbody id="guessResults"></tbody>
+        </table>
+    </div>
 
     <script>
         /* GROUP 1: Allowed Sets (Excluding sets after DMU) */
@@ -90,38 +94,16 @@
             "pvan", "ITP", "POR", "PO2", "PTK", "S99", "S00", "arn", "atq", "leg", "drk", "fem", "hml", "ice", "all", "mir", "vis", "wth", "tmp", "sth", "exo", "usg", "ulg", "uds", "mmq", "nem", "pcy", "inv", "pls", "apc", "ody", "tor", "jud", "ons", "lgn", "scg", "mrd", "dst", "5dn", "chk", "bok", "sok", "rav", "gpt", "dis", "csp", "tsp", "plc", "fut", "lrw", "mor", "shm", "eve", "ala", "con", "arb", "zen", "wwk", "roe", "som", "mbs", "nph", "isd", "dka", "avr", "rtr", "gtc", "dgm", "ths", "bng", "jou", "ktk", "frf", "dtk", "bfz", "ogw", "soi", "emn", "kld", "aer", "akh", "hou", "xln", "rix", "dom", "grn", "rna", "war", "eld", "thb", "iko", "znr", "khm", "stx", "afr", "mid", "vow", "neo", "snc", "dmu"
         ];
 
-        function fetchSetSymbols() {
-            fetch("https://api.scryfall.com/sets")
-                .then(response => response.json())
-                .then(data => {
-                    let sets = data.data.filter(set => allowedSets.includes(set.code));
-                    let container = document.getElementById("setSymbolContainer");
-
-                    sets.forEach(set => {
-                        let img = document.createElement("img");
-                        img.src = set.icon_svg_uri;
-                        img.classList.add("set-symbol");
-                        img.alt = set.name;
-                        container.appendChild(img);
-                    });
-                })
-                .catch(error => console.error("Error fetching set symbols:", error));
-        }
-        fetchSetSymbols();
-        /* This Ends Group 1 */
-
-        /* GROUP 2: Game Logic */
+        /* GROUP 2: Fetching a Random Card */
         let cardData = null;
-
         function fetchRandomCard() {
             fetch(`https://api.scryfall.com/cards/random?q=set:${allowedSets.join(" OR set:")}`)
                 .then(response => response.json())
-                .then(data => {
-                    cardData = data;
-                })
+                .then(data => { cardData = data; })
                 .catch(error => console.error("Error fetching card:", error));
         }
 
+        /* GROUP 3: Checking User's Guess */
         function checkGuess() {
             const userGuess = document.getElementById("guessInput").value.trim().toLowerCase();
             if (!cardData) {
@@ -130,60 +112,27 @@
             }
 
             let resultRow = document.createElement("tr");
+            resultRow.innerHTML = `
+                <td>#</td>
+                <td class="${userGuess === cardData.name.toLowerCase() ? "correct" : "wrong"}">${cardData.name}</td>
+                <td class="almost-correct">${cardData.cmc}</td>
+                <td class="almost-correct">${cardData.colors ? cardData.colors.join(", ") : "Colorless"}</td>
+                <td>${cardData.rarity}</td>
+                <td>${cardData.type_line}</td>
+                <td>${cardData.oracle_text ? cardData.oracle_text : "None"}</td>
+                <td>${cardData.set.toUpperCase()}</td>
+            `;
 
-            // Check if card name is correct
-            let nameCell = document.createElement("td");
-            nameCell.textContent = cardData.name;
-            nameCell.classList.add(userGuess === cardData.name.toLowerCase() ? "correct" : "wrong");
-            resultRow.appendChild(nameCell);
-
-            // Check mana value
-            let mvCell = document.createElement("td");
-            mvCell.textContent = cardData.cmc;
-            mvCell.classList.add("almost-correct");
-            resultRow.appendChild(mvCell);
-
-            // Check colours
-            let colourCell = document.createElement("td");
-            colourCell.textContent = cardData.colors ? cardData.colors.join(", ") : "Colorless";
-            colourCell.classList.add("almost-correct");
-            resultRow.appendChild(colourCell);
-
-            // Check rarity
-            let rarityCell = document.createElement("td");
-            rarityCell.textContent = cardData.rarity;
-            resultRow.appendChild(rarityCell);
-
-            // Check type
-            let typeCell = document.createElement("td");
-            typeCell.textContent = cardData.type_line;
-            resultRow.appendChild(typeCell);
-
-            // Check subtype
-            let subtypeCell = document.createElement("td");
-            subtypeCell.textContent = cardData.oracle_text ? cardData.oracle_text : "None";
-            resultRow.appendChild(subtypeCell);
-
-            // Check set
-            let setCell = document.createElement("td");
-            setCell.textContent = cardData.set.toUpperCase();
-            resultRow.appendChild(setCell);
-
-            // Append to table
             document.getElementById("guessResults").appendChild(resultRow);
-
-            // Fetch a new card after each guess
-            fetchRandomCard();
+            fetchRandomCard();  // Load a new card after each guess
         }
 
+        /* GROUP 4: Enter Key Support */
         document.getElementById("guessInput").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                checkGuess();
-            }
+            if (event.key === "Enter") { checkGuess(); }
         });
 
-        fetchRandomCard();
-        /* This Ends Group 2 */
+        fetchRandomCard();  // Load the first card on page load
     </script>
 </body>
 </html>
