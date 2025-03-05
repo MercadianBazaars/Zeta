@@ -1,104 +1,72 @@
-// Zeta - Magic Card Guessing Game
-// Fully functional clone of Enchant Worldle
-// Integrated with Scryfall API for real-time card fetching
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magic Card Guessing Game</title>
+    <style>
+        .correct { background-color: green; color: white; }
+        .incorrect { background-color: #cc0000; color: white; }
+        .close { background-color: yellow; color: black; }
+        .color-box, .rarity-box { display: flex; gap: 2px; justify-content: center; }
+        .color-cell, .rarity-cell { width: 20px; height: 20px; background-color: grey; border: 1px solid black; }
+        .white { background-color: white; }
+        .blue { background-color: blue; }
+        .black { background-color: black; }
+        .dark-red { background-color: #8B0000; }
+        .green { background-color: green; }
+        .brown { background-color: brown; }
+        .purple { background-color: purple; }
+        .match { background-color: green; }
+        .partial-match { background-color: yellow; }
+        .no-match { background-color: #cc0000; }
+        .common { background-color: black; }
+        .uncommon { background-color: silver; }
+        .rare { background-color: gold; }
+        .mythic { background-color: orange; }
+        .error-message { color: red; font-weight: bold; }
+    </style>
+    <script>
+        let cardData = null;
+        let guessCount = 0;
 
-import React, { useState, useEffect } from "react";
-import ReactDOM from "react-dom";
-import "./styles/index.css";
-import "bootstrap/dist/css/bootstrap.min.css";
-import InputForm from "./components/InputForm";
-import GameOver from "./components/GameOver";
-import Ticker from "./components/Ticker";
-import Info from "./components/Info";
-import Settings from "./components/Settings";
+        const allowedSets = ["grn", "rna", "war", "eld"];
+        const rarityOrder = {"common": 1, "uncommon": 2, "rare": 3, "mythic": 4};
 
-// Placeholder styles if missing
-const styles = document.createElement("style");
-styles.innerHTML = `
-  body {
-    font-family: Arial, sans-serif;
-    background-color: #121212;
-    color: white;
-    text-align: center;
-    padding: 20px;
-    margin: 0;
-  }
-`;
-document.head.appendChild(styles);
+        function fetchRandomCard() {
+            const apiUrl = `https://api.scryfall.com/cards/random?q=set:${allowedSets.map(set => `set%3A${set}`).join("+OR+")}`;
+            console.log("Fetching from:", apiUrl);
+            
+            fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                if (!data || !data.name) throw new Error("Invalid card data");
+                cardData = data;
+                document.getElementById("cardImage").src = data.image_uris?.normal || "https://via.placeholder.com/250";
+                document.getElementById("cardImage").style.display = "none";
+                document.getElementById("errorMessage").textContent = "";
+                clearGuessTable();
+            })
+            .catch(error => {
+                console.error("Error fetching card:", error);
+                document.getElementById("errorMessage").textContent = "⚠ Error fetching card. Try again later.";
+            });
+        }
 
-const App = () => {
-  const [correctAnswer, setCorrectAnswer] = useState(null);
-  const [guesses, setGuesses] = useState([]);
-  const [gameFinished, setGameFinished] = useState(false);
-
-  useEffect(() => {
-    fetchDailyCard();
-  }, []);
-
-  const fetchDailyCard = async () => {
-    try {
-      const response = await fetch("https://api.scryfall.com/cards/random?q=is:paper");
-      if (!response.ok) throw new Error("Failed to fetch card");
-      const card = await response.json();
-      setCorrectAnswer(card);
-    } catch (error) {
-      console.error("Error fetching card:", error);
-    }
-  };
-
-  const handleGuess = async (guess) => {
-    if (!correctAnswer) return;
-    
-    try {
-      const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(guess)}`);
-      if (!response.ok) throw new Error("Invalid card name");
-      const guessedCard = await response.json();
-      
-      setGuesses([...guesses, guessedCard]);
-      if (guessedCard.name.toLowerCase() === correctAnswer.name.toLowerCase()) {
-        setGameFinished(true);
-      }
-    } catch (error) {
-      console.error("Invalid guess or card not found:", error);
-    }
-  };
-
-  return (
-    <div className="container text-center">
-      <h1>Zeta - Magic Card Guessing Game</h1>
-      <Ticker />
-      {!gameFinished && <InputForm onGuess={handleGuess} />}
-      {gameFinished && <GameOver correctAnswer={correctAnswer} />}
-      <Info />
-      <Settings />
-    </div>
-  );
-};
-
-// Placeholder Components to prevent missing imports
-const InputForm = ({ onGuess }) => (
-  <div>
-    <input type="text" placeholder="Guess a card" onKeyDown={(e) => e.key === "Enter" && onGuess(e.target.value)} />
-    <button onClick={() => onGuess(document.querySelector("input").value)}>Guess</button>
-  </div>
-);
-
-const GameOver = ({ correctAnswer }) => (
-  <div>
-    <h2>Game Over</h2>
-    <p>The correct card was {correctAnswer ? correctAnswer.name : "Unknown"}.</p>
-  </div>
-);
-
-const Ticker = () => <div className='ticker'>Set Symbols will appear here.</div>;
-const Info = () => <div className='info'>Game instructions will appear here.</div>;
-const Settings = () => <div className='settings'>Settings menu</div>;
-
-ReactDOM.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-  document.getElementById("root")
-);
-
-export default App;
+        document.addEventListener("DOMContentLoaded", fetchRandomCard);
+    </script>
+</head>
+<body>
+    <h1>Magic Card Guessing Game</h1>
+    <p>Guess the Magic: The Gathering card!</p>
+    <p id="errorMessage" class="error-message"></p>
+    <img id="cardImage" src="" alt="Magic Card" style="display:none; width:250px; height:auto; margin:20px 0;" />
+    <br>
+    <input type="text" id="guessInput" placeholder="Enter card name...">
+    <button onclick="checkGuess()">Submit Guess</button>
+    <p id="feedback"></p>
+</body>
+</html>
